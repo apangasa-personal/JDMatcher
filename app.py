@@ -21,7 +21,7 @@ def extract_text_from_docx(file):
     return docx2txt.process(file)
 
 def clean_text(text):
-    text = re.sub(r'[^a-zA-Z ]', '', text)
+    text = re.sub(r'[^a-zA-Z ]', ' ', text)
     text = text.lower()
     words = [word for word in text.split() if word not in stopwords.words('english')]
     return ' '.join(words)
@@ -48,8 +48,10 @@ resume_file = st.file_uploader("📄 Upload your Resume (PDF or DOCX)", type=["p
 
 # JD input options
 st.subheader("💼 Job Description Input")
-jd_input_option = st.radio("Choose how you'd like to provide the Job Description:",
-                           ["Paste text manually", "Upload file"])
+jd_input_option = st.radio(
+    "Choose how you'd like to provide the Job Description:",
+    ["Paste text manually", "Upload file"]
+)
 
 jd_text = ""
 
@@ -63,31 +65,40 @@ else:
         else:
             jd_text = extract_text_from_docx(jd_file)
 
-# Process button
-if resume_file and jd_text.strip():
-    if resume_file.name.endswith(".pdf"):
-        resume_text = extract_text_from_pdf(resume_file)
+# Button to trigger processing
+if st.button("🔍 Check Match"):
+    if not resume_file:
+        st.warning("Please upload your resume.")
+    elif not jd_text.strip():
+        st.warning("Please provide or upload the job description.")
     else:
-        resume_text = extract_text_from_docx(resume_file)
+        # Extract resume text
+        if resume_file.name.endswith(".pdf"):
+            resume_text = extract_text_from_pdf(resume_file)
+        else:
+            resume_text = extract_text_from_docx(resume_file)
 
-    resume_clean = clean_text(resume_text)
-    jd_clean = clean_text(jd_text)
+        # Clean text
+        resume_clean = clean_text(resume_text)
+        jd_clean = clean_text(jd_text)
 
-    match_score = calculate_similarity(resume_clean, jd_clean)
+        # Calculate similarity
+        match_score = calculate_similarity(resume_clean, jd_clean)
 
-    st.subheader("✅ Match Score:")
-    st.metric(label="Resume–JD Match", value=f"{match_score}%")
+        st.subheader("✅ Match Score:")
+        st.metric(label="Resume–JD Match", value=f"{match_score}%")
 
-    suggestions = suggest_improvements(resume_clean, jd_clean)
-    st.subheader("🛠️ Suggested Keywords to Add:")
-    if suggestions:
-        st.write(", ".join(suggestions))
-    else:
-        st.write("Your resume already matches well with the job description! 🎉")
+        # Suggest improvements
+        suggestions = suggest_improvements(resume_clean, jd_clean)
+        st.subheader("🛠️ Suggested Keywords to Add:")
+        if suggestions:
+            st.write(", ".join(suggestions))
+        else:
+            st.write("Your resume already matches well with the job description! 🎉")
 
-    st.download_button(
-        label="⬇️ Download Suggestions",
-        data="\n".join(suggestions),
-        file_name="resume_improvement_suggestions.txt",
-        mime="text/plain"
-    )
+        st.download_button(
+            label="⬇️ Download Suggestions",
+            data="\n".join(suggestions),
+            file_name="resume_improvement_suggestions.txt",
+            mime="text/plain"
+        )
